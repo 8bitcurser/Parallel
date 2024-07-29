@@ -1,5 +1,5 @@
 use std::process::Output;
-use image::{open, GenericImageView, ImageFormat, DynamicImage, imageops::FilterType};
+use image::{open, GenericImageView, ImageFormat, DynamicImage, imageops::FilterType, imageops::crop_imm};
 
 fn resize_image(path: &str, width: u32, height: u32) -> DynamicImage{
     let image = open(path).expect("Failed to open image");
@@ -40,14 +40,28 @@ fn resize_image_maintain_ratio(path: &str, new_width: Option<u32>, new_height: O
 }
 
 
+fn crop_image(img: &DynamicImage, x: u32, y: u32, width: u32, height: u32) -> DynamicImage{
+    let cropped_image = crop_imm(img, x, y, width, height);
+    DynamicImage::ImageRgba8(cropped_image.to_image())
+}
+
+
 fn main() {
     let path = "assets/sample_img.jpg";
     // let outpath = "assets/resized.png";
-    let outrotatepath = "assets/rotated.png";
+    // let outrotatepath = "assets/rotated.png";
+    let outpath = "assets/resized_ratio.png";
+    let croppedpath = "assets/cropped.png";
 
+    let resized_ratio = resize_image_maintain_ratio(path, Some(512), Some(246));
+    save_image(&resized_ratio, outpath);
+    let img = open(outpath).expect("Oops!");
+    let crop_im = crop_image(&img, 50, 500, 500, 500);
+    save_image(&crop_im, croppedpath);
     // let resized_image = resize_image(path, 512, 512);
-    let rotated_image = rotate_image(path, 270);
-    save_image(&rotated_image, outrotatepath);
+    // let rotated_image = rotate_image(path, 270);
+    // save_image(&rotated_image, outrotatepath);
+
     // let img = open("assets/sample_img.jpg").expect("Failure opening image");
     //     let (width, height) = img.dimensions();
     // img.save_with_format(
