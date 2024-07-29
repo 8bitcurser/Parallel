@@ -53,9 +53,10 @@ fn main() {
     let outpath = "assets/resized_ratio.png";
     let croppedpath = "assets/cropped.png";
 
-    let resized_ratio = resize_image_maintain_ratio(path, Some(512), Some(246));
-    save_image(&resized_ratio, outpath);
-    let img = open(outpath).expect("Oops!");
+    // let resized_ratio = resize_image_maintain_ratio(path, Some(512), Some(246));
+    // save_image(&resized_ratio, outpath);
+
+    let img = open(path).expect("Oops!");
     let crop_im = crop_image(&img, 50, 500, 500, 500);
     save_image(&crop_im, croppedpath);
     // let resized_image = resize_image(path, 512, 512);
