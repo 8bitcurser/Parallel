@@ -24,6 +24,22 @@ fn rotate_image(path: &str, degrees: u32) -> DynamicImage{
 }
 
 
+fn resize_image_maintain_ratio(path: &str, new_width: Option<u32>, new_height: Option<u32>) -> DynamicImage {
+    let img = open(path).expect("Failed to open image");
+    let (width, height) = img.dimensions();
+    // calculate new dimensions while maintaining aspect ratio
+    let ratio = width as f32 / height as f32;
+    let (resize_width, resize_height) = match(new_width, new_height) {
+        (Some(w), None) => (w, (width as f32 / ratio).round() as u32),
+        (None, Some(h)) => ((height as f32 / ratio).round() as u32, h),
+        (Some(w), Some(h)) => (w, h),
+        (None, None) => (width, height)
+    };
+
+    img.resize(resize_width, resize_height, FilterType::Lanczos3)
+}
+
+
 fn main() {
     let path = "assets/sample_img.jpg";
     // let outpath = "assets/resized.png";
