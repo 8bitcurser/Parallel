@@ -1,6 +1,10 @@
 use std::process::Output;
-use image::{open, GenericImageView, ImageFormat, DynamicImage, imageops::FilterType, imageops::crop_imm};
+use image::{open, GenericImageView, ImageFormat, DynamicImage, imageops::FilterType, imageops::crop_imm, ImageBuffer, Rgba};
 use std::{env, path::Path};
+
+fn load_image(filepath: &str) -> Result<DynamicImage, image::ImageError>{
+    image::open(filepath)
+}
 
 fn resize_image(image: &DynamicImage, width: u32, height: u32) -> DynamicImage{
     image.resize(width, height, FilterType::Lanczos3)
@@ -37,6 +41,17 @@ fn resize_image_maintain_ratio(img: &DynamicImage, new_width: Option<u32>, new_h
     img.resize(resize_width, resize_height, FilterType::Lanczos3)
 }
 
+fn custom_rotate_90_clockwise(
+    img: &ImageBuffer<Rgba<u8>, Vec<u8>>,) -> ImageBuffer<Rgba<u8>, Vec<u8>>{
+    let (width, height) = img.dimensions();
+    let mut new_img = ImageBuffer::new(height, width); // dimensions swapped
+    img.enumerate_pixels().for_each(|(x, y, pixel)| {
+        let new_x = height - y - 1;
+        let new_y = x;
+        new_img.put_pixel(new_x, new_y, *pixel);
+    });
+    new_img
+}
 
 fn crop_image(img: &DynamicImage, x: u32, y: u32, width: u32, height: u32) -> DynamicImage{
     let cropped_image = crop_imm(img, x, y, width, height);
@@ -51,7 +66,7 @@ fn main() {
     let route = path.parent().unwrap().to_str().unwrap();
     let extension = "png";
     let outpath = format!("{}/{}.{}", route, operation, extension);
-    let img= open(path).expect("oops couldn't open the file!");
+    let img= load_image(path.to_str().expect("oops")).unwrap();
     match operation.as_str() {
         "crop" => {
             let cropped = crop_image(&img, 50, 500, 500, 500);
@@ -72,6 +87,11 @@ fn main() {
         "to-png" => {
             img.save_with_format(
                 outpath, ImageFormat::Png).expect("Save to save as PNG");
+        },
+        "custom_rotate" => {
+            let rotated_img = custom_rotate_90_clockwise(
+                &img.to_rgba8());
+            rotated_img.save(outpath).expect("Failed to rotate");
         },
         _ => {
             eprintln!("We only support: [crop, rotate, resize, resize-ratio, formats]");
