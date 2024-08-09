@@ -1,6 +1,7 @@
 use std::process::Output;
 use image::{open, GenericImageView, ImageFormat, DynamicImage, imageops::FilterType, imageops::crop_imm, ImageBuffer, Rgba};
-use std::{env, path::Path};
+use rayon::prelude::*;
+use std::{env, path::Path, fs};
 
 fn load_image(filepath: &str) -> Result<DynamicImage, image::ImageError>{
     image::open(filepath)
@@ -59,15 +60,16 @@ fn crop_image(img: &DynamicImage, x: u32, y: u32, width: u32, height: u32) -> Dy
 }
 
 
-fn main() {
-    let args: Vec<String> = env::args().collect();
-    let operation = &args[1];
-    let path = Path::new(&args[2]);
+
+fn process_image(operation: &str, path: &Path) {
+    let img= load_image(path.to_str().expect("oops")).unwrap();
     let route = path.parent().unwrap().to_str().unwrap();
     let extension = "png";
-    let outpath = format!("{}/{}.{}", route, operation, extension);
-    let img= load_image(path.to_str().expect("oops")).unwrap();
-    match operation.as_str() {
+    let outpath = format!(
+        "{}/{}_{}.{}",
+        route, operation, path.file_stem().unwrap().to_str().unwrap(), extension
+    );
+    match operation {
         "crop" => {
             let cropped = crop_image(&img, 50, 500, 500, 500);
             save_image(&cropped, &outpath);
@@ -94,7 +96,28 @@ fn main() {
             rotated_img.save(outpath).expect("Failed to rotate");
         },
         _ => {
-            eprintln!("We only support: [crop, rotate, resize, resize-ratio, formats]");
+            eprintln!(
+                "We only support: [crop, rotate, resize, resize-ratio, formats, to-png, custom_rotate]");
         }
+    }
+}
+
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    let operation = &args[1];
+    let path = Path::new(&args[2]);
+
+    if path.is_dir(){
+        fs::read_dir(path)
+            .expect("Dir not found!")
+            .filter_map(Result::ok)
+            .filter(|entry| entry.path().is_file())
+            .filter(|entry| entry.path().extension().map_or(false, |ext| ext == "jpg" || ext == "png"))
+            .par_bridge()
+            .for_each(|entry| {
+                process_image(operation, &entry.path());
+            });
+    } else {
+        process_image(operation, path);
     }
 }
