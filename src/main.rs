@@ -1,5 +1,8 @@
 use std::process::Output;
-use image::{open, GenericImageView, ImageFormat, DynamicImage, imageops::FilterType, imageops::crop_imm, ImageBuffer, Rgba};
+use image::{
+    GenericImageView, ImageFormat, DynamicImage, imageops::FilterType,
+    imageops::crop_imm, imageops::blur, ImageBuffer, Rgba
+};
 use rayon::prelude::*;
 use std::{env, path::Path, fs};
 
@@ -60,6 +63,10 @@ fn crop_image(img: &DynamicImage, x: u32, y: u32, width: u32, height: u32) -> Dy
 }
 
 
+fn obfuscate(img: &DynamicImage) -> DynamicImage{
+    DynamicImage::ImageRgba8(blur(img, 10.0))
+}
+
 
 fn process_image(operation: &str, path: &Path) {
     let img= load_image(path.to_str().expect("oops")).unwrap();
@@ -95,9 +102,12 @@ fn process_image(operation: &str, path: &Path) {
                 &img.to_rgba8());
             rotated_img.save(outpath).expect("Failed to rotate");
         },
+        "obfuscate" => {
+            let blurred = obfuscate(&img);
+            save_image(&blurred, &outpath);
+        }
         _ => {
-            eprintln!(
-                "We only support: [crop, rotate, resize, resize-ratio, formats, to-png, custom_rotate]");
+            eprintln!("We only support: [crop, rotate, resize, resize-ratio, formats, to-png, custom_rotate, obfuscate]");
         }
     }
 }
